@@ -1,5 +1,7 @@
 package telran.forum.controller;
 
+import java.util.Set;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -36,6 +38,24 @@ public class AccountManagmentController {
 	public UserProfileDto remove(@PathVariable String id, 
 			@RequestHeader(value = "Authorization") String auth) {
 		return accountService.removeUser(id,auth);
+	}
+	
+	@PutMapping("/{id}/{role}")
+	public Set<String> addRole(@PathVariable String id, @PathVariable String role,
+			@RequestHeader(value = "Authorization") String auth) {
+		return accountService.addRole(id, role, auth);
+	}
+	
+	@DeleteMapping("/{id}/{role}")
+	public Set<String> removeRole(@PathVariable String id, @PathVariable String role,
+			@RequestHeader(value = "Authorization") String auth) {
+		return accountService.removeRole(id, role, auth);
+	}
+	
+	@PutMapping("/password")
+	public void changePassword(@RequestHeader(value = "X-Password") String password,
+			@RequestHeader(value = "Authorization") String auth) {
+		accountService.changePassword(password, auth);
 	}
 
 }

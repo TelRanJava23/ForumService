@@ -1,6 +1,7 @@
 package telran.forum.service.filter;
 
 import java.io.IOException;
+import java.time.LocalDateTime;
 
 import javax.servlet.Filter;
 import javax.servlet.FilterChain;
@@ -11,7 +12,6 @@ import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import org.mindrot.jbcrypt.BCrypt;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Service;
@@ -22,9 +22,9 @@ import telran.forum.dao.UserAccountRepository;
 import telran.forum.domain.UserAccount;
 
 @Service
-@Order(1)
-public class AuthenticationFilter implements Filter {
-
+@Order(2)
+public class ExpDateFilter implements Filter{
+	
 	@Autowired
 	AccountConfiguration userConfiguration;
 
@@ -34,34 +34,34 @@ public class AuthenticationFilter implements Filter {
 	@Override
 	public void doFilter(ServletRequest reqs, ServletResponse resp, FilterChain chain)
 			throws IOException, ServletException {
+		
 		HttpServletRequest request = (HttpServletRequest) reqs;
 		HttpServletResponse response = (HttpServletResponse) resp;
-		//NB! removed annotation @WebFilter, and added this condition 
-		//if (request.getServletPath().startsWith("/forum"))
+		int status = response.getStatus();
+		if(status == 401 || status == 403) {
+			chain.doFilter(request, response);
+			return;
+		}
+		
 		String path = request.getServletPath();
-		if (!path.equalsIgnoreCase("/account/register")) {
+		if (!path.equalsIgnoreCase("/account/password") &&
+				!path.equalsIgnoreCase("/account/register")) {
 			String auth = request.getHeader("Authorization");
 			AccountUserCredential userCredential = userConfiguration.tokenDecode(auth);
 			UserAccount userAccount = accountRepository.findById(userCredential.getLogin()).orElse(null);
-			if (userAccount == null) {
-				response.sendError(401, "Unauthorized");
-			} else {
-				if (!BCrypt.checkpw(userCredential.getPassword(), userAccount.getPassword())) {
-					response.sendError(403, "Forbidden");
-				}
-				//userAccount.getPassword().equals(userCredential.getPassword())
+			if (LocalDateTime.now().isAfter(userAccount.getExpDate())) {
+				response.sendError(403, "password expired");
 			}
 		}
 		chain.doFilter(request, response);
-
+	}
+	
+	@Override
+	public void init(FilterConfig filterConfig) throws ServletException {
 	}
 
 	@Override
 	public void destroy() {
-	}
-
-	@Override
-	public void init(FilterConfig config) throws ServletException {
 	}
 
 }

@@ -69,4 +69,52 @@ public class AccountServiceImpl implements AccountService {
 		return new UserProfileDto(userAccount.getId(), userAccount.getFirstName(), userAccount.getLastName());
 	}
 
+	@Override
+	public Set<String> addRole(String id, String role, String auth) {
+		//TODO
+		AccountUserCredential credentials = accountConfiguration.tokenDecode(auth);
+		UserAccount user = userRepository.findById(credentials.getLogin()).get();
+		if(!user.getRoles().contains("Admin")) {
+			throw new ForbiddenException();
+		}
+		UserAccount userAccount = userRepository.findById(id).orElse(null);
+		if (userAccount == null) {
+			return null;
+		}
+		Set<String> roles = userAccount.getRoles();
+		roles.add(role);
+		userRepository.save(userAccount);
+		return roles;
+		
+	}
+
+	@Override
+	public Set<String> removeRole(String id, String role, String auth) {
+		//TODO
+		AccountUserCredential credentials = accountConfiguration.tokenDecode(auth);
+		UserAccount user = userRepository.findById(credentials.getLogin()).get();
+		if(!user.getRoles().contains("Admin")) {
+			throw new ForbiddenException();
+		}
+		UserAccount userAccount = userRepository.findById(id).orElse(null);
+		if (userAccount == null) {
+			return null;
+		}
+		Set<String> roles = userAccount.getRoles();
+		roles.remove(role);
+		userRepository.save(userAccount);
+		return roles;
+	}
+
+	@Override
+	public void changePassword(String password, String auth) {
+		//TODO
+		AccountUserCredential credentials = accountConfiguration.tokenDecode(auth);
+		UserAccount userAccount = userRepository.findById(credentials.getLogin()).get();
+		String hashPassword = BCrypt.hashpw(password, BCrypt.gensalt());
+		userAccount.setPassword(hashPassword);
+		userAccount.setExpDate(LocalDateTime.now().plusDays(accountConfiguration.getExpPeriod()));
+		userRepository.save(userAccount);
+	}
+
 }
